@@ -458,8 +458,7 @@ public class Gestor {
      * @return
      */
     public ArrayList<Docente> getDocentes() {
-        //TODO: 71. Listado de docentes
-        return null;
+        return new ArrayList<>(mapaDocentes.keySet());
     }
 
     /**
@@ -467,8 +466,13 @@ public class Gestor {
      * @return
      */
     public TreeSet<Docente> getDocentesSinCarga() {
-        //TODO: 72. Docentes que no imparten ninguna asignatura
-        return null;
+        TreeSet<Docente> cjtoSinCarga = new TreeSet<>();
+        for (Map.Entry<Docente, TreeSet<GrupoAsignatura>> entry : mapaDocentes.entrySet()) {
+            if (entry.getValue().size()==0) {
+                cjtoSinCarga.add(entry.getKey());
+            }
+        }
+        return cjtoSinCarga;
     }
 
     /**
@@ -478,7 +482,12 @@ public class Gestor {
      * @return
      */
     public Docente getDocenteGrupoAsignatura(Grupo grupo, Asignatura asignatura) {
-        //TODO: 73. Docente que imparte en un grupo una asignatura
+        GrupoAsignatura grupoAsignatura = new GrupoAsignatura(grupo, asignatura);
+        for (Map.Entry<Docente, TreeSet<GrupoAsignatura>> entry : mapaDocentes.entrySet()) {
+            if (entry.getValue().contains(grupoAsignatura)) {
+                return entry.getKey();
+            }
+        }
         return null;
     }
 
@@ -488,8 +497,17 @@ public class Gestor {
      * @return
      */
     public TreeSet<Docente> getDocentesGrupo(Grupo grupo) {
-        //TODO: 74. Docentes que imparten en un grupo
-        return null;
+        TreeSet<Docente> docentes = new TreeSet<>();
+        for (Map.Entry<Docente, TreeSet<GrupoAsignatura>> entry : mapaDocentes.entrySet()) {
+            var imparte = entry.getValue();
+            for (GrupoAsignatura grupoAsignatura : imparte) {
+                if (grupoAsignatura.getGrupo().equals(grupo)){
+                    docentes.add(entry.getKey());
+                    break;
+                }
+            }
+        }
+        return docentes;
     }
 
     /**
@@ -497,8 +515,20 @@ public class Gestor {
      * @return
      */
     public TreeMap<Grupo, Integer> getGruposNumeroDocentes() {
-        //TODO: 75. Cuántos profesores hay en cada grupo
-        return null;
+        TreeMap<Grupo, Integer> m = new TreeMap<>();
+        // Se podría utilizar registro para obtener los grupos más fácil
+        //TreeSet<Grupo> grupos = getGrupos();
+        HashSet<Grupo> grupos = new HashSet<>();
+        for (TreeSet<GrupoAsignatura> cjtoGrupoAsignaturas : mapaDocentes.values()) {
+            for (GrupoAsignatura grupoAsignatura : cjtoGrupoAsignaturas) {
+                grupos.add(grupoAsignatura.getGrupo());
+            }
+        }
+        for (Grupo grupo : grupos) {
+            var docentes = getDocentesGrupo(grupo);
+            m.put(grupo, docentes.size());
+        }
+        return m;
     }
 
     /**
@@ -507,8 +537,28 @@ public class Gestor {
      * @return
      */
     public TreeMap<Asignatura, Docente> getAsignaturasDocentesGrupo(Grupo grupo) {
-        //TODO: 76. Docentes que imparten una asignatura
-        return null;
+        TreeMap<Asignatura, Docente> m = new TreeMap<>();
+        // Se podría utilizar registro para obtener las asignaturas más fácil
+        //HashSet<Asignatura> asignaturas = getAsignaturas();
+        HashSet<Asignatura> asignaturas = new HashSet<>();
+        for (TreeSet<GrupoAsignatura> cjtoGrupoAsignaturas : mapaDocentes.values()) {
+            for (GrupoAsignatura grupoAsignatura : cjtoGrupoAsignaturas) {
+                asignaturas.add(grupoAsignatura.getAsignatura());
+            }
+        }
+        for (Asignatura asignatura : asignaturas) {
+            for (Map.Entry<Docente, TreeSet<GrupoAsignatura>> entry : mapaDocentes.entrySet()) {
+                var docente = entry.getKey();
+                var cjtoGAs = entry.getValue();
+                for (GrupoAsignatura ga : cjtoGAs) {
+                    if (ga.getAsignatura().equals(asignatura) && ga.getGrupo().equals(grupo)) {
+                        m.put(asignatura, docente);
+                        break;
+                    }
+                }
+            }
+        }
+        return m;
     }
 
     /**
@@ -518,8 +568,18 @@ public class Gestor {
      * @return
      */
     public TreeSet<Grupo> getGruposComunes(Docente docente1, Docente docente2) {
-        //TODO: 77. Grupos comunes en los que imparten dos docentes
-        return null;
+        TreeSet<Grupo> grupos1 = new TreeSet<>();
+        var ga1s = mapaDocentes.get(docente1);
+        for (GrupoAsignatura ga : ga1s) {
+            grupos1.add(ga.getGrupo());
+        }
+        TreeSet<Grupo> grupos2 = new TreeSet<>();
+        var ga2s = mapaDocentes.get(docente2);
+        for (GrupoAsignatura ga : ga2s) {
+            grupos2.add(ga.getGrupo());
+        }
+        grupos1.retainAll(grupos2);
+        return grupos1;
     }
 
     /**
@@ -527,8 +587,22 @@ public class Gestor {
      * @return
      */
     public TreeMap<Grupo, TreeMap<Asignatura, Docente>> getGruposAsignaturasDocentes() {
-        //TODO: 78. Listado con los grupos, las asignaturas y los docentes
-        return null;
+        TreeMap<Grupo, TreeMap<Asignatura, Docente>> res = new TreeMap<>();
+        // Se podría utilizar registro para obtener los grupos
+        //TreeSet<Grupo> grupos = getGrupos();
+        Set<Grupo> grupos = getGruposNumeroDocentes().keySet();
+        for (Grupo grupo : grupos) {
+            res.put(grupo, new TreeMap<>());
+        }
+        for (Map.Entry<Docente, TreeSet<GrupoAsignatura>> entry : mapaDocentes.entrySet()) {
+            var docente = entry.getKey();
+            var gas = entry.getValue();
+            for (GrupoAsignatura ga : gas) {
+                var ads = res.get(ga.getGrupo());
+                ads.put(ga.getAsignatura(),docente);
+            }
+        }
+        return res;
     }
 
     //endregion
